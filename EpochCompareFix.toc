@@ -1,0 +1,8 @@
+## Interface: 30300
+## Title: Epoch Compare Fix
+## Notes: Restores stat deltas to Shift-Compare on Project Epoch
+## Author: Lumio
+## Version: 0.1
+
+
+EpochCompareFix.lua
