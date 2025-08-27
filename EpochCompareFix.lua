@@ -1,4 +1,4 @@
-local ADDON_NAME = ...
+local ADDON_NAME = EpochCompare
 
 
 -- Map Blizzard equip locations (from GetItemInfo) to one or more inventory slot IDs
