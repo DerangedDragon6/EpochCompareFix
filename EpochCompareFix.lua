@@ -77,82 +77,86 @@ local SLOT_FRIENDLY = {
 [SLOT.RangedSlot] = "Ranged",
 }
 
-local function cleanStatName(statKey)
--- Blizzard provides localized short labels in globals like ITEM_MOD_STRENGTH_SHORT
-local label = _G[statKey]
-if type(label) == "string" and label ~= "" then
-return label
+-- Normalize stat keys so ITEM_MOD_INTELLECT and ITEM_MOD_INTELLECT_SHORT become the same
+local function normalizeKey(key)
+    return key:gsub("_SHORT", "")
 end
 
- -- Fallback: strip the ITEM_MOD_ prefix for readability
-return (statKey:gsub("ITEM_MOD_", ""):gsub("_SHORT", ""):gsub("_", " "))
+local function normalizeStats(stats)
+    local t = {}
+    for k, v in pairs(stats) do
+        t[normalizeKey(k)] = (t[normalizeKey(k)] or 0) + v
+    end
+    return t
+end
+
+local function cleanStatName(statKey)
+    local label = _G[statKey]
+    if type(label) == "string" and label ~= "" then
+        return label
+    end
+    return (statKey:gsub("ITEM_MOD_", ""):gsub("_SHORT", ""):gsub("_", " "))
 end
 
 local function unionKeys(a, b)
-local u = {}
-for k in pairs(a) do u[k] = true end
-for k in pairs(b) do u[k] = true end
-return u
+    local u = {}
+    for k in pairs(a) do u[k] = true end
+    for k in pairs(b) do u[k] = true end
+    return u
 end
 
 local function addDeltaLines(tooltip, hoveredLink, slotId)
-local equippedLink = GetInventoryItemLink("player", slotId)
-if not equippedLink then return end
+    local equippedLink = GetInventoryItemLink("player", slotId)
+    if not equippedLink then return end
 
+    -- normalize both sets of stats
+    local newStats = normalizeStats(GetItemStats(hoveredLink) or {})
+    local oldStats = normalizeStats(GetItemStats(equippedLink) or {})
 
-local newStats = GetItemStats(hoveredLink) or {}
-local oldStats = GetItemStats(equippedLink) or {}
+    local name = GetItemInfo(equippedLink)
+    if name then
+        tooltip:AddLine(string.format("Compared to: %s (%s)", name, SLOT_FRIENDLY[slotId] or slotId), 0.9, 0.9, 0.9)
+    end
 
- -- Header: show which equipped item we’re comparing against
-local name = GetItemInfo(equippedLink)
-if name then
-tooltip:AddLine(string.format("Compared to: %s (%s)", name, SLOT_FRIENDLY[slotId] or slotId), 0.9, 0.9, 0.9)
-end
-
-local keys = unionKeys(newStats, oldStats)
-for stat in pairs(keys) do
-local nv = tonumber(newStats[stat]) or 0
-local ov = tonumber(oldStats[stat]) or 0
-local diff = nv - ov
-if diff ~= 0 then
-local sign = diff > 0 and "+" or ""
-local r, g, b = (diff > 0) and 0.2 or 1, (diff > 0) and 1 or 0.2, 0.2
-tooltip:AddDoubleLine(cleanStatName(stat), string.format("(%s%d)", sign, diff), 1,1,1, r,g,b)
-end
-end
+ local keys = unionKeys(newStats, oldStats)
+    for stat in pairs(keys) do
+        local nv = tonumber(newStats[stat]) or 0
+        local ov = tonumber(oldStats[stat]) or 0
+        local diff = nv - ov
+        if diff ~= 0 then
+            local sign = diff > 0 and "+" or ""
+            local r, g, b = (diff > 0) and 0.2 or 1, (diff > 0) and 1 or 0.2, 0.2
+            tooltip:AddDoubleLine(cleanStatName(stat), string.format("(%s%d)", sign, diff), 1,1,1, r,g,b)
+        end
+    end
 end
 
 -- Avoid duplicate appends while the same tooltip is shown
 local function resetGuard(self)
-self.__EpochCompare_AddedFor = nil
+    self.__EpochCompare_AddedFor = nil
 end
+
 
 GameTooltip:HookScript("OnHide", resetGuard)
 ItemRefTooltip:HookScript("OnHide", resetGuard)
 
 local function handleTooltip(tooltip)
-local _, link = tooltip:GetItem()
-if not link or not IsShiftKeyDown() then return end
+    local _, link = tooltip:GetItem()
+    if not link or not IsShiftKeyDown() then return end
+    if tooltip.__EpochCompare_AddedFor == link then return end
 
--- Prevent re-adding for the same item instance during this show cycle
-if tooltip.__EpochCompare_AddedFor == link then return end
+ local _, _, _, _, _, _, _, _, equipLoc = GetItemInfo(link)
+    if not equipLoc then return end
 
+    local slots = EQUIPLOC_TO_SLOTS[equipLoc]
+    if not slots or #slots == 0 then return end
 
-local _, _, _, _, _, _, _, _, equipLoc = GetItemInfo(link)
-if not equipLoc then return end
+    for i = 1, #slots do
+        addDeltaLines(tooltip, link, slots[i])
+    end
 
-
-local slots = EQUIPLOC_TO_SLOTS[equipLoc]
-if not slots or #slots == 0 then return end
-
-
-for i = 1, #slots do
-addDeltaLines(tooltip, link, slots[i])
-end
-
-
-tooltip.__EpochCompare_AddedFor = link
-tooltip:Show()
+ tooltip.__EpochCompare_AddedFor = link
+    tooltip:Show()
 end
 
 GameTooltip:HookScript("OnTooltipSetItem", handleTooltip)
