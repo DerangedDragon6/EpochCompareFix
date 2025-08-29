@@ -4,31 +4,32 @@ local ADDON_NAME = "EpochCompare"
 local SLOT = {}
 
 local EQUIPLOC_TO_SLOTS = {
-    INVTYPE_HEAD        = function() return { SLOT.HeadSlot } end,
-    INVTYPE_NECK        = function() return { SLOT.NeckSlot } end,
-    INVTYPE_SHOULDER    = function() return { SLOT.ShoulderSlot } end,
-    INVTYPE_BACK        = function() return { SLOT.BackSlot } end,   -- cloak handled here
-    INVTYPE_CHEST       = function() return { SLOT.ChestSlot } end,
-    INVTYPE_ROBE        = function() return { SLOT.ChestSlot } end,
-    INVTYPE_BODY        = function() return { SLOT.ShirtSlot } end,
-    INVTYPE_TABARD      = function() return { SLOT.TabardSlot } end,
-    INVTYPE_WRIST       = function() return { SLOT.WristSlot } end,
-    INVTYPE_HAND        = function() return { SLOT.HandsSlot } end,
-    INVTYPE_WAIST       = function() return { SLOT.WaistSlot } end,
-    INVTYPE_LEGS        = function() return { SLOT.LegsSlot } end,
-    INVTYPE_FEET        = function() return { SLOT.FeetSlot } end,
-    INVTYPE_FINGER      = function() return { SLOT.Finger0Slot, SLOT.Finger1Slot } end,
-    INVTYPE_TRINKET     = function() return { SLOT.Trinket0Slot, SLOT.Trinket1Slot } end,
-    INVTYPE_WEAPON      = function() return { SLOT.MainHandSlot, SLOT.SecondaryHandSlot } end,
-    INVTYPE_2HWEAPON    = function() return { SLOT.MainHandSlot } end,
+    INVTYPE_HEAD = function() return { SLOT.HeadSlot } end,
+    INVTYPE_NECK = function() return { SLOT.NeckSlot } end,
+    INVTYPE_SHOULDER = function() return { SLOT.ShoulderSlot } end,
+    INVTYPE_BACK = function() return { SLOT.BackSlot } end,
+    INVTYPE_CHEST = function() return { SLOT.ChestSlot } end,
+    INVTYPE_ROBE = function() return { SLOT.ChestSlot } end,
+    INVTYPE_BODY = function() return { SLOT.ShirtSlot } end,
+    INVTYPE_TABARD = function() return { SLOT.TabardSlot } end,
+    INVTYPE_WRIST = function() return { SLOT.WristSlot } end,
+    INVTYPE_HAND = function() return { SLOT.HandsSlot } end,
+    INVTYPE_WAIST = function() return { SLOT.WaistSlot } end,
+    INVTYPE_LEGS = function() return { SLOT.LegsSlot } end,
+    INVTYPE_FEET = function() return { SLOT.FeetSlot } end,
+    INVTYPE_FINGER = function() return { SLOT.Finger0Slot, SLOT.Finger1Slot } end,
+    INVTYPE_TRINKET = function() return { SLOT.Trinket0Slot, SLOT.Trinket1Slot } end,
+    INVTYPE_CLOAK = function() return { SLOT.BackSlot } end,
+    INVTYPE_WEAPON = function() return { SLOT.MainHandSlot, SLOT.SecondaryHandSlot } end,
+    INVTYPE_2HWEAPON = function() return { SLOT.MainHandSlot } end,
     INVTYPE_WEAPONMAINHAND = function() return { SLOT.MainHandSlot } end,
-    INVTYPE_WEAPONOFFHAND  = function() return { SLOT.SecondaryHandSlot } end,
-    INVTYPE_HOLDABLE    = function() return { SLOT.SecondaryHandSlot } end,
-    INVTYPE_SHIELD      = function() return { SLOT.SecondaryHandSlot } end,
-    INVTYPE_RANGED      = function() return { SLOT.RangedSlot } end,
+    INVTYPE_WEAPONOFFHAND = function() return { SLOT.SecondaryHandSlot } end,
+    INVTYPE_HOLDABLE = function() return { SLOT.SecondaryHandSlot } end,
+    INVTYPE_SHIELD = function() return { SLOT.SecondaryHandSlot } end,
+    INVTYPE_RANGED = function() return { SLOT.RangedSlot } end,
     INVTYPE_RANGEDRIGHT = function() return { SLOT.RangedSlot } end,
-    INVTYPE_THROWN      = function() return { SLOT.RangedSlot } end,
-    INVTYPE_RELIC       = function() return { SLOT.RangedSlot } end,
+    INVTYPE_THROWN = function() return { SLOT.RangedSlot } end,
+    INVTYPE_RELIC = function() return { SLOT.RangedSlot } end,
 }
 
 -- Friendly names for a few slots when we print headers (populated after login)
@@ -51,10 +52,6 @@ local function cleanStatName(statKey)
     local label = _G[statKey]
     if type(label) == "string" and label ~= "" then
         return label
-    end
-    -- handle rating stats better
-    if statKey:find("RATING") then
-        return statKey:gsub("ITEM_MOD_", ""):gsub("_RATING", " Rating")
     end
     return (statKey:gsub("ITEM_MOD_", ""):gsub("_SHORT", ""):gsub("_", " "))
 end
@@ -102,10 +99,6 @@ ItemRefTooltip:HookScript("OnHide", resetGuard)
 local function handleTooltip(tooltip)
     local _, link = tooltip:GetItem()
     if not link or not IsShiftKeyDown() then return end
-
-    -- Always reset guard so refresh works correctly
-    tooltip.__EpochCompare_AddedFor = nil
-
     if tooltip.__EpochCompare_AddedFor == link then return end
 
     local _, _, _, _, _, _, _, _, equipLoc = GetItemInfo(link)
@@ -117,13 +110,8 @@ local function handleTooltip(tooltip)
     local slots = slotGetter()
     if not slots or #slots == 0 then return end
 
-    -- Compare against the first equipped slot only (prevents double spam)
     for i = 1, #slots do
-        local equippedLink = GetInventoryItemLink("player", slots[i])
-        if equippedLink then
-            addDeltaLines(tooltip, link, slots[i])
-            break
-        end
+        addDeltaLines(tooltip, link, slots[i])
     end
 
     tooltip.__EpochCompare_AddedFor = link
