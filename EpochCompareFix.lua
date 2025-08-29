@@ -48,13 +48,57 @@ local function normalizeStats(stats)
     return t
 end
 
+local CUSTOM_LABELS = {
+    ITEM_MOD_STRENGTH_SHORT              = "Strength",
+    ITEM_MOD_AGILITY_SHORT               = "Agility",
+    ITEM_MOD_STAMINA_SHORT               = "Stamina",
+    ITEM_MOD_INTELLECT_SHORT             = "Intellect",
+    ITEM_MOD_SPIRIT_SHORT                = "Spirit",
+
+    ITEM_MOD_SPELL_POWER_SHORT           = "Spell Power",
+    ITEM_MOD_HEALING_DONE_SHORT          = "Healing",  -- some older items
+    ITEM_MOD_MANA_REGENERATION_SHORT     = "MP5",
+    ITEM_MOD_HEALTH_REGENERATION_SHORT   = "HP5",
+    ITEM_MOD_SPELL_PENETRATION_SHORT     = "Spell Pen",
+    ITEM_MOD_SPELL_HASTE_RATING_SHORT    = "Spell Haste",
+
+    ITEM_MOD_ATTACK_POWER_SHORT          = "Attack Power",
+    ITEM_MOD_RANGED_ATTACK_POWER_SHORT   = "Ranged AP",
+    ITEM_MOD_EXPERTISE_RATING_SHORT      = "Expertise",
+    ITEM_MOD_ARMOR_PENETRATION_RATING_SHORT = "Armor Pen",
+
+    ITEM_MOD_HIT_RATING_SHORT            = "Hit",
+    ITEM_MOD_CRIT_RATING_SHORT           = "Crit",
+    ITEM_MOD_HASTE_RATING_SHORT          = "Haste",
+    ITEM_MOD_RESILIENCE_RATING_SHORT     = "Resilience",
+    ITEM_MOD_DODGE_RATING_SHORT          = "Dodge",
+    ITEM_MOD_PARRY_RATING_SHORT          = "Parry",
+    ITEM_MOD_BLOCK_RATING_SHORT          = "Block",
+    ITEM_MOD_DEFENSE_SKILL_RATING_SHORT  = "Defense",
+
+    ITEM_MOD_BLOCK_VALUE_SHORT           = "Block Value",
+    ITEM_MOD_ARMOR_SHORT                 = "Armor",
+}
+
 local function cleanStatName(statKey)
+    -- First check custom mapping
+    if CUSTOM_LABELS[statKey] then
+        return CUSTOM_LABELS[statKey]
+    end
+
     local label = _G[statKey]
     if type(label) == "string" and label ~= "" then
+        -- Strip format placeholders (%c, %d, %s, etc.)
+        label = label:gsub("%%.-[cds]", "")
+        -- Trim leading/trailing spaces
+        label = label:gsub("^%s+", ""):gsub("%s+$", "")
         return label
     end
+
+   -- Fallback: generate something readable
     return (statKey:gsub("ITEM_MOD_", ""):gsub("_SHORT", ""):gsub("_", " "))
 end
+
 
 local function unionKeys(a, b)
     local u = {}
